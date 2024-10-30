@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to DOCX Converter</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4; /* Light background color */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center; /* Centering the content */
+            align-items: center;
+            min-height: 100vh; /* Full height */
+        }
+
+        .container {
+            background: white; /* White background for the card */
+            border-radius: 8px; /* Rounded corners */
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+            width: 90%;
+            max-width: 500px; /* Max width for the card */
+            transition: transform 0.2s ease; /* Animation for hover effect */
+        }
+
+        .container:hover {
+            transform: scale(1.02); /* Slightly increase size on hover */
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #333; /* Dark color for title */
+        }
+
+        input[type="text"], button {
+            padding: 10px;
+            width: 100%; /* Full width */
+            border: 1px solid #ccc; /* Light border */
+            border-radius: 4px; /* Rounded corners */
+            margin: 10px 0; /* Space between inputs */
+            font-size: 16px; /* Font size */
+            transition: border-color 0.3s ease; /* Transition for border color */
+        }
+
+        input[type="text"]:focus {
+            outline: none; /* Remove outline */
+            border-color: #4caf50; /* Change border color on focus */
+        }
+
+        #uploadArea {
+            width: 100%;
+            height: 200px;
+            margin: 20px 0; /* Space between inputs */
+            border: 2px dashed #ccc; /* Dashed border */
+            border-radius: 4px; /* Rounded corners */
+            background: #f9f9f9; /* Light background for the upload area */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease; /* Transition for border color */
+        }
+
+        #uploadArea.dragover {
+            border-color: #4caf50; /* Change border color on dragover */
+        }
+
+        #uploadArea.file-selected {
+            border-color: #4caf50; /* Change border color when file is selected */
+        }
+
+        #uploadArea p {
+            font-size: 16px;
+            color: #333; /* Dark color for text */
+            margin: 0; /* Remove margin */
+        }
+
+        button {
+            background: linear-gradient(135deg, #4caf50, #81c784); /* Gradient from dark green to light green */
+            color: white; /* Button text color */
+            cursor: pointer;
+            border: none; /* Remove default border */
+            border-radius: 4px; /* Rounded corners */
+            padding: 10px; /* Padding for button */
+            font-size: 16px; /* Font size */
+            transition: background 0.3s ease, transform 0.2s ease; /* Transition for hover effect */
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #45a049, #66bb6a); /* Darker gradient on hover */
+            transform: scale(1.05); /* Slightly increase size on hover */
+        }
+
+        #loadingContainer {
+            margin-top: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4caf50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #downloadLinkContainer {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px; /* Adjust padding for smaller screens */
+            }
+
+            input[type="text"], button {
+                padding: 8px; /* Slightly smaller padding on smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF to DOCX Converter</h1>
+
+        <!-- URL Input -->
+        <input type="text" id="pdfUrl" placeholder="Enter PDF URL">
+
+        <!-- Drag-and-Drop Upload Area -->
+        <div id="uploadArea" onclick="triggerFileSelect()">
+            <input type="file" id="fileInput" accept=".pdf" style="display: none;" onchange="handleFileSelect(event)">
+            <p>Drag & drop your PDF here or click to upload</p>
+        </div>
+
+        <button onclick="startConversion()">Convert</button>
+
+        <!-- Loading animation and message -->
+        <div id="loadingContainer" style="display: none;">
+            <div class="spinner"></div>
+            <p>Conversion is in progress. Please wait…</p>
+        </div>
+
+        <!-- Download link for the converted document -->
+        <div id="downloadLinkContainer" style="display: none;">
+            <a id="downloadLink" href="#">Download your converted document</a>
+        </div>
+    </div>
+
+    <script src="/static/js/script.js"></script>
+    <script>
+        const uploadArea = document.getElementById("uploadArea");
+        const fileInput = document.getElementById("fileInput");
+        const pdfUrlInput = document.getElementById("pdfUrl");
+        let selectedFile = null;
+
+        // Trigger file input on area click
+        function triggerFileSelect() {
+            fileInput.click();
+        }
+
+        // Handle file selection
+        function handleFileSelect(event) {
+            selectedFile = event.target.files[0];
+            if (selectedFile && selectedFile.type === "application/pdf") {
+                uploadArea.classList.add("file-selected");
+                uploadArea.querySelector("p").textContent = `File selected: ${selectedFile.name}`;
+            } else {
+                alert("Please upload a valid PDF file.");
+            }
+        }
+
+        // Handle drag events
+        uploadArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            uploadArea.classList.add("dragover");
+        });
+
+        uploadArea.addEventListener("dragleave", () => {
+            uploadArea.classList.remove("dragover");
+        });
+
+        uploadArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove("dragover");
+
+            selectedFile = e.dataTransfer.files[0];
+            if (selectedFile && selectedFile.type === "application/pdf") {
+                uploadArea.classList.add("file-selected");
+                uploadArea.querySelector("p").textContent = `File selected: ${selectedFile.name}`;
+            } else {
+                alert("Please upload a valid PDF file.");
+            }
+        });
+
+        async function startConversion() {
+            const pdfUrl = pdfUrlInput.value;
+            if (!selectedFile && !pdfUrl) {
+                alert("Please upload a file or enter a PDF URL.");
+                return;
+            }
+           
+            document.getElementById("uploadArea").style.display = "none";
+
+            // Show loading animation
+            document.getElementById("loadingContainer").style.display = "block";
+            document.getElementById("downloadLinkContainer").style.display = "none";
+
+            const formData = new FormData();
+            if (selectedFile) {
+                formData.append("pdf_file", selectedFile);
+            } else {
+                formData.append("pdf_url", pdfUrl);
+            }
+
+            // Start the conversion process
+            const response = await fetch('/convert', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                alert("Error during conversion!");
+                document.getElementById("loadingContainer").style.display = "none";
+                return;
+            }
+
+            // Hide the loading animation and show download link
+            document.getElementById("loadingContainer").style.display = "none";
+            document.getElementById("downloadLinkContainer").style.display = "block";
+
+            const blob = await response.blob();
+            const downloadLink = document.getElementById("downloadLink");
+            const url = URL.createObjectURL(blob);
+            downloadLink.href = url;
+            downloadLink.download = "converted_document.docx";
+        }
+    </script>
+</body>
+</html>
